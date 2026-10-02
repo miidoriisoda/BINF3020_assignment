@@ -1,5 +1,6 @@
 from Bio.Align import substitution_matrices
 blosum62 = substitution_matrices.load("BLOSUM62")
+blosum90 = substitution_matrices.load("BLOSUM90")
 
 """Global sequence alignment using the Needleman–Wunsch algorithm.
 
@@ -118,8 +119,6 @@ def global_alignment(seq1, seq2, scoring_function):
 
             j -= 1
 
-    # Traceback constructs the sequences backwards,
-    # so reverse them.
     aligned_seq1 = "".join(reversed(aligned_seq1))
     aligned_seq2 = "".join(reversed(aligned_seq2))
 
@@ -155,12 +154,12 @@ def global_alignment(seq1, seq2, scoring_function):
 
     """
 def local_alignment(seq1, seq2, scoring_function):
-    gap = -1
+    gap = -8
     n = len(seq1)
     m = len(seq2)
 
     # ---------------------------------------------------------
-    # 1. Initialise: first row/column stay 0 for local alignment
+    # 1. Initialise matrix
     # ---------------------------------------------------------
     score = [[0] * (m + 1) for _ in range(n + 1)]
     best_score = 0
@@ -183,22 +182,25 @@ def local_alignment(seq1, seq2, scoring_function):
                 best_pos = (i, j)
 
     # ---------------------------------------------------------
-    # 3. Traceback from the best cell until the score hits 0
+    # 3. Traceback
     # ---------------------------------------------------------
     aligned_seq1 = []
     aligned_seq2 = []
     i, j = best_pos
 
     while score[i][j] > 0:
+        # diagonal
         if score[i][j] == score[i - 1][j - 1] + scoring_function(seq1[i - 1], seq2[j - 1]):
             aligned_seq1.append(seq1[i - 1])
             aligned_seq2.append(seq2[j - 1])
             i -= 1
             j -= 1
+        # left
         elif score[i][j] == score[i - 1][j] + gap:
             aligned_seq1.append(seq1[i - 1])
             aligned_seq2.append("-")
             i -= 1
+        # up
         else:
             aligned_seq1.append("-")
             aligned_seq2.append(seq2[j - 1])
@@ -216,17 +218,31 @@ def scoring_function_simple(aa_i,aa_j):
     return (score)
 
 # generate scoring function based on blosum62 scoring matrix
-# set default gap to -1
-def blosum62_matrix(x, y, default=-1):
+# set default gap to -8
+def blosum62_matrix(x, y, default=-8):
     try:
         result = blosum62[x][y]
         return result
     except KeyError:
         return default
 
+def blosum90_matrix(x, y, default=-8):
+    try:
+        result = blosum90[x][y]
+        return result
+    except KeyError:
+        return default
+
+# for global alignments
 def percent_identity(seq1, seq2):
     score = 0
     for base1, base2 in zip(seq1, seq2):
         if base1 == base2:
             score = score + 1
     return score / len(seq1)
+
+# for local alignments
+def alignment_stats(a, b, orf_len):
+    matches = sum(x == y and x != "-" for x, y in zip(a, b))
+    orf_residues = sum(y != "-" for y in b)
+    return matches / len(a), orf_residues / orf_len

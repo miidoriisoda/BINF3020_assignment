@@ -8,7 +8,6 @@ from Bio import Entrez, SeqIO
 from Bio.SeqFeature import SimpleLocation
 import sys; sys.path.append(".")
 import json
-from Bio import Entrez
 Entrez.email = "z5476602@unsw.edu.au"
 
 accession_codes = {
